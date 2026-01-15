@@ -1,0 +1,6 @@
+__pycache__
+.vscode
+/build/
+/dist/
+/esa_update.egg-info/
+/esa_update.pyz
