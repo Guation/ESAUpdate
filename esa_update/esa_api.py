@@ -39,7 +39,7 @@ def flattening_params(params, prefix = "", upper_params: dict = None):
         upper_params[prefix] = params.decode("utf-8") if isinstance(params, bytes) else str(params)
     return upper_params
 
-def request(action: str, params: dict = None):
+def request(method: str, action: str, params: dict = None):
     headers = {
         "host": "esa.cn-hangzhou.aliyuncs.com",
         "x-acs-action": action,
@@ -55,13 +55,13 @@ def request(action: str, params: dict = None):
     )
     canonical_headers = "\n".join(f"{k}:{v}" for k, v in headers.items()) + "\n"
     signed_headers = ";".join(headers.keys())
-    canonical_request = "\n".join(["POST", "/", canonical_query_string, canonical_headers, signed_headers, headers["x-acs-content-sha256"]])
+    canonical_request = "\n".join([method, "/", canonical_query_string, canonical_headers, signed_headers, headers["x-acs-content-sha256"]])
     hashed_canonical_request = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
     signature = hmac.new(__token.encode("utf-8"), f"ACS3-HMAC-SHA256\n{hashed_canonical_request}".encode("utf-8"), hashlib.sha256).digest().hex().lower()
     headers["Authorization"] = f"ACS3-HMAC-SHA256 Credential={__id},SignedHeaders={signed_headers},Signature={signature}"
     debug("action=%s, params=%s, headers=%s", action, params, headers)
     try:
-        response = requests.request("POST", f"https://{headers['host']}/?{urlencode(params, doseq=True, safe='*')}", headers=headers)
+        response = requests.request(method, f"https://{headers['host']}/?{urlencode(params, doseq=True, safe='*')}", headers=headers)
         r = response.content
         if response.status_code != 200:
             raise ValueError(
@@ -80,7 +80,7 @@ def request(action: str, params: dict = None):
 
 def search_siteid(domain: str) -> int:
     domainPunycode = domain2punycode(domain)
-    for i in request("ListSites", {})["Sites"]:
+    for i in request("GET", "ListSites", {})["Sites"]:
         if domain2punycode(i["SiteName"]) == domainPunycode:
             return i["SiteId"]
     raise ValueError(
@@ -93,7 +93,7 @@ def search_recordid(sub_domain: str, siteid: int) -> int:
         "SiteId": siteid,
         "PageSize": 500
     }
-    for i in request("ListRecords", params)["Records"]:
+    for i in request("GET", "ListRecords", params)["Records"]:
         if domain2punycode(i["RecordName"]) == domainPunycode:
             return i["RecordId"]
     raise ValueError(
@@ -106,7 +106,7 @@ def search_configid(sub_domain: str, siteid: int) -> int:
         "SiteId": siteid,
         "PageSize": 500
     }
-    for i in request("ListOriginRules", params)["Configs"]:
+    for i in request("GET", "ListOriginRules", params)["Configs"]:
         if domain2punycode(i.get("RuleName", "")) == domainPunycode:
             return i["ConfigId"]
     raise ValueError(
@@ -120,9 +120,11 @@ def update_ip(ip: str):
     recordid = search_recordid(f"{sub_domain}.{domain}", siteid)
     payload = {
         "RecordId": recordid,
-        "Data": f'{{"Value":"{ip}"}}'
+        "Data": {
+            "Value": ip
+        }
     }
-    return request("UpdateRecord", payload)
+    return request("POST", "UpdateRecord", payload)
 
 def update_port(port: int):
     sub_domain = __sub_domain
@@ -135,4 +137,4 @@ def update_port(port: int):
         "OriginHttpPort": port,
         "OriginHttpsPort": port
     }
-    return request("UpdateOriginRule", payload)
+    return request("POST", "UpdateOriginRule", payload)
