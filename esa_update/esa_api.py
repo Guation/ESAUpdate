@@ -120,7 +120,7 @@ def update_ip(ip: str):
     recordid = search_recordid(f"{sub_domain}.{domain}", siteid)
     payload = {
         "RecordId": recordid,
-        "Data": '{"Value":' + ip + '}'
+        "Data": '{"Value":"' + ip + '"}'
     }
     return request("POST", "UpdateRecord", payload)
 
