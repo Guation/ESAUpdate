@@ -5,7 +5,7 @@ __author__ = "Guation"
 __all__ = ["update_ip", "update_port", "init"]
 
 import time, uuid, hashlib, hmac, requests, json
-from urllib.parse import quote, urlencode
+from urllib.parse import quote_plus, urlencode
 from logging import debug, info, warning, error
 
 __id: str = None
@@ -50,7 +50,7 @@ def request(method: str, action: str, params: dict = None):
     }
     headers = dict(sorted(headers.items()))
     canonical_query_string = "&".join(
-        f"{quote(k)}={quote(str(v))}"
+        f"{quote_plus(k)}={quote_plus(str(v))}"
         for k, v in sorted(flattening_params(params).items())
     )
     canonical_headers = "\n".join(f"{k}:{v}" for k, v in headers.items()) + "\n"
@@ -120,7 +120,9 @@ def update_ip(ip: str):
     recordid = search_recordid(f"{sub_domain}.{domain}", siteid)
     payload = {
         "RecordId": recordid,
-        "Data": '{"Value":' + ip + '}'
+        "Data": {
+            "Value": ip
+        }
     }
     return request("POST", "UpdateRecord", payload)
 
