@@ -1,5 +1,7 @@
 # ESAUpdate
 
+已合并到 [NAT1 Traversal](https://github.com/Guation/nat1_traversal)
+
 ## 使用方法
 1. 在[ESA](https://esa.console.aliyun.com/siteManage/list)控制台点击新增站点，绑定您的域名，其值与`config.json`的`domain`，我们假设您绑定的域为`example.com`
 
